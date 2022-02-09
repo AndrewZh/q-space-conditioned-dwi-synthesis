@@ -16,7 +16,7 @@ class h5Loader(Dataset):
         if self.is_train:
             self.key = 'train'
         else:
-            self.key = 'val'
+            self.key = 'test'
         self.folder = folder
 
         self.dir_group = dir_group  # load multiple directions each time
@@ -32,7 +32,7 @@ class h5Loader(Dataset):
         idx = torch.randint(0, self.__len__()-self.dir_group, ()).numpy()
         hf = h5py.File(self.folder, 'r')
         if self.dir_group > 0:
-            idx = np.arange(idx, idx+self.dir_group)
+            idx = np.arange(idx, idx+self.dir_group).tolist()
         slice_b0 = hf['{}_b0'.format(self.key)][idx].transpose(0,2,1)
         slice_dwis = hf['{}_dwi'.format(self.key)][idx].transpose(0,2,1)
         t1 =  hf['{}_t1'.format(self.key)][idx].transpose(0,2,1)

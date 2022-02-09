@@ -16,7 +16,8 @@ import matplotlib
 matplotlib.use('Agg')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='../configs/smri2dwi.yaml', help='Path to the config file.')
+parser.add_argument('--config', type=str, default='/data/andrey/q-space-conditioned-dwi-synthesis/configs/smri2dwi.yaml',
+                                         help='Path to the config file.')
 parser.add_argument('--data_root', type=str, default='', help='Path to the data, if None, get from config files')
 parser.add_argument("--resume", type=int, default=0)
 opts = parser.parse_args()
@@ -53,18 +54,20 @@ else:
     data_root = opts.data_root
 print('* Data root defined in ' + data_root)
 
-file = '../datasets/data_HCP_wuminn/trainval_example.h5'
+# file = '/data/andrey/q-space-conditioned-dwi-synthesis/datasets/trainval.hdf5'
+file = '/data/s2ms/train/train_15_nonPad_NoStructNorm_4Qsampl.hdf5'
+val_file = '/data/s2ms/test/test_1_nonPad_NoStructNorm_4Qsampl.hdf5'
 
 train_dataset = h5Loader(folder=file, pad_size=config['pad_size'], is_train=True, dir_group=n_dwi)
-val_dataset = h5Loader(folder=file,  pad_size=config['pad_size'], is_train=False, dir_group=n_dwi)
+val_dataset = h5Loader(folder=val_file,  pad_size=config['pad_size'], is_train=False, dir_group=n_dwi)
 
 data_loader_train = torch.utils.data.DataLoader(dataset= train_dataset,
                                            batch_size=batch_size, shuffle=False,  # shuffle in data loader (speed up)
-                                           num_workers=2,
+                                           #num_workers=1,
                                            pin_memory=False)
 data_loader_val = torch.utils.data.DataLoader(dataset= val_dataset,
                                            batch_size=batch_size, shuffle=False,
-                                           num_workers=2,
+                                           #num_workers=1,
                                            pin_memory=False)
 print('---------------------------------------------------------------------')
 
@@ -121,7 +124,7 @@ start = time()
 while epoch < n_epochs or iterations < n_iterations:
     epoch += 1
     for it, data in enumerate(data_loader_train):
-        iterations = it + epoch*len(data_loader_train)
+        iterations = it + (epoch-1)*len(data_loader_train)
         start = time()
         train_dict = trainer.update(data, n_dwi, iterations)
         end = time()

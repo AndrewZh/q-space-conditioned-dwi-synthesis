@@ -140,7 +140,7 @@ def ref_loading(folder, pad_size=180, key='test', dir_group=2):
 
 if __name__ == '__main__':
     config = get_config('/data/andrey/q-space-conditioned-dwi-synthesis/configs/smri2dwi.yaml')
-    checkpoint = '/data/andrey/q-space-conditioned-dwi-synthesis/logs/smri2dwi_noSkull_NoStructNorm/gen_epoch10step461798.pt'
+    checkpoint = '/data/andrey/q-space-conditioned-dwi-synthesis/logs/smri2dwi_noSkull_NoStructNorm/gen_latest.pt'
 
     trainer = dwi_Trainer(config)
     net = trainer.gen_a
@@ -151,14 +151,15 @@ if __name__ == '__main__':
     _ = net.eval()
 
     data_dir = '/data/s2ms/test' 
+    out_dir = "qsampling"
     subj_source_dir = '/data/s2ms/results/b0_n_5xb1000_to_b2000'
-    subjects = ['872158'] #sorted([s for s in os.listdir(subj_source_dir) if osp.isdir(osp.join(subj_source_dir, s))])
+    subjects = sorted([s for s in os.listdir(subj_source_dir) if osp.isdir(osp.join(subj_source_dir, s))])
 
-    val_file = '/data/s2ms/test/test_1_nonPad_NoStructNorm_4Qsampl.hdf5'
+    # val_file = '/data/s2ms/test/test_1_nonPad_NoStructNorm_4Qsampl.hdf5'
     
-    return_dict = ref_loading(val_file)
-    dwi_h5 = np.squeeze(return_dict['dwi_1'])
-    skio.imsave('dwi_h5.png', dwi_h5.transpose())
+    # return_dict = ref_loading(val_file)
+    # dwi_h5 = np.squeeze(return_dict['dwi_1'])
+    # skio.imsave('dwi_h5.png', dwi_h5.transpose())
 
     for subj_id in subjects:
         print(subj_id)
@@ -189,7 +190,7 @@ if __name__ == '__main__':
         norm_b1000 = norm_dwi[..., b1000_mask]
         norm_b1000[dwi[..., b1000_mask]<1e-5] = 0
         norm_b1000[norm_b1000 < 0] = 0
-        # norm_b1000 = np.clip(norm_b1000, 0, 1)
+        norm_b1000 = np.clip(norm_b1000, 0, 1)
 
         b0_vols = dwi[..., b0_mask]
         b0_avrg_vol = np.mean(b0_vols, axis=-1)
@@ -200,61 +201,60 @@ if __name__ == '__main__':
         bvals_2000 = bvals[b2000_mask] / 3010 #np.max(bvals)
         bvecs_2000 = bvecs[b2000_mask,:] 
 
-        dwi_2000 = norm_dwi[..., b2000_mask]
-        dwi_2000[dwi[..., b2000_mask]==0] = 0
-        dwi_2000[dwi_2000 < 0] = 0
-        skio.imsave('dwi_gt.png', np.clip(np.squeeze(norm_dwi[...,42,6]), 0, 1))
+        # dwi_2000 = norm_dwi[..., b2000_mask]
+        # dwi_2000[dwi[..., b2000_mask]==0] = 0
+        # dwi_2000[dwi_2000 < 0] = 0
+        # skio.imsave('dwi_gt.png', np.clip(np.squeeze(norm_dwi[...,42,6]), 0, 1))
         
-    #     gen_dwi = np.zeros(dwi.shape[:-1]+(num_vols,))
+        gen_dwi = np.zeros(dwi.shape[:-1]+(num_vols,))
 
-    #     out_dir = "NoSkull_ep10"
+        if not osp.isdir(f'/data/s2ms/results/{out_dir}/{subj_id}/'):
+            os.makedirs(f'/data/s2ms/results/{out_dir}/{subj_id}/')
 
-    #     if not osp.isdir(f'/data/s2ms/results/{out_dir}/{subj_id}/'):
-    #         os.makedirs(f'/data/s2ms/results/{out_dir}/{subj_id}/')
+        gen_bval = np.concatenate((bvals[b0_mask], bvals[b1000_mask], bvals[b2000_mask])).astype(int)
+        gen_bvec = np.concatenate((bvecs[b0_mask,:], bvecs[b1000_mask,:], bvecs[b2000_mask,:]))
 
-    #     gen_bval = np.concatenate((bvals[b0_mask], bvals[b1000_mask], bvals[b2000_mask])).astype(int)
-    #     gen_bvec = np.concatenate((bvecs[b0_mask,:], bvecs[b1000_mask,:], bvecs[b2000_mask,:]))
-
-    #     with open(f'/data/s2ms/results/{out_dir}/{subj_id}/bvals','w') as gen_bval_file:
-    #         gen_bval_file.write(' '.join(map(str, gen_bval)))
-    #         gen_bval_file.write('\n')
-    #     with open(f'/data/s2ms/results/{out_dir}/{subj_id}/bvecs','w') as gen_bvec_file:
-    #         gen_bvec_file.write(' '.join(map(str, gen_bvec[:,0])))
-    #         gen_bvec_file.write('\n')
-    #         gen_bvec_file.write(' '.join(map(str, gen_bvec[:,1])))
-    #         gen_bvec_file.write('\n')
-    #         gen_bvec_file.write(' '.join(map(str, gen_bvec[:,2])))
-    #         gen_bvec_file.write('\n')
+        with open(f'/data/s2ms/results/{out_dir}/{subj_id}/bvals','w') as gen_bval_file:
+            gen_bval_file.write(' '.join(map(str, gen_bval)))
+            gen_bval_file.write('\n')
+        with open(f'/data/s2ms/results/{out_dir}/{subj_id}/bvecs','w') as gen_bvec_file:
+            gen_bvec_file.write(' '.join(map(str, gen_bvec[:,0])))
+            gen_bvec_file.write('\n')
+            gen_bvec_file.write(' '.join(map(str, gen_bvec[:,1])))
+            gen_bvec_file.write('\n')
+            gen_bvec_file.write(' '.join(map(str, gen_bvec[:,2])))
+            gen_bvec_file.write('\n')
         
-    #     gen_dwi[..., :num_b0] = b0_vols
-    #     gen_dwi[..., num_b0: num_b0+num_b1000] = norm_b1000
-    #     b1000_sample = dwi[...,b1000_mask][...,0]
+        gen_dwi[..., :num_b0] = b0_vols
+        gen_dwi[..., num_b0: num_b0+num_b1000] = norm_b1000
+        # b1000_sample = dwi[...,b1000_mask][...,0]
         
-    #     for volIdx in range(num_b2000):
-    #         volIdx=1
-    #         for sliceIdx in range(dwi.shape[2]):
-    #             sliceIdx=42
-    #             print('Volume', volIdx,'Slice', sliceIdx, end='\r')
-    #             if np.sum(b1000_sample[...,sliceIdx]) > 0:
-    #                 gen_slice = synthesize_slice_per_bvec_bval(b0_avrg_vol, t2, t1,
-    #                                         sliceIdx, net, bvecs_2000[volIdx,:], bvals_2000[volIdx], device)
-    #                 skio.imsave('dwi_gen.png', gen_slice)
-    #                 gen_dwi[:,:,sliceIdx, num_b0+num_b1000+volIdx] = np.clip(gen_slice, 0, 1)
-    #                 # gen_slice = synthesize_slice_per_bvec_bval(np.squeeze(return_dict['b0_1']), np.squeeze(return_dict['t2_1']), np.squeeze(return_dict['t1_1']),
-    #                 #                         sliceIdx, net, bvecs_2000[volIdx,:], bvals_2000[volIdx], device)
-    #                 # skio.imsave('dwi_gen_ref.png', gen_slice)
-    #                 break
-    #         break
+        for volIdx in range(num_b2000):
+            # volIdx=1
+            for sliceIdx in range(dwi.shape[2]):
+                # sliceIdx=42
+                print('Volume', volIdx,'Slice', sliceIdx, end='\r')
+                if np.sum(mask[...,sliceIdx]) > 0:
+                    gen_slice = synthesize_slice_per_bvec_bval(b0_avrg_vol, t2, t1,
+                                            sliceIdx, net, bvecs_2000[volIdx,:], bvals_2000[volIdx], device)
+                    
+                    # skio.imsave('dwi_gen.png', np.clip(gen_slice, 0, 1))
+                    gen_dwi[:,:,sliceIdx, num_b0+num_b1000+volIdx] = np.clip(gen_slice, 0, 1)
+                    # gen_slice = synthesize_slice_per_bvec_bval(np.squeeze(return_dict['b0_1']), np.squeeze(return_dict['t2_1']), np.squeeze(return_dict['t1_1']),
+                    #                         sliceIdx, net, bvecs_2000[volIdx,:], bvals_2000[volIdx], device)
+                    # skio.imsave('dwi_gen_ref.png', gen_slice)
+            #         break
+            # break
         
-    # #     print('')
+        print('')
         
-    # #     b0_avrg_vol = np.mean(b0_vols, axis=-1)
-    # #     non_b0_mask = [True] * gen_dwi.shape[-1]
-    # #     non_b0_mask[:num_b0] = [False]*num_b0
-    # #     unscaled = gen_dwi * b0_avrg_vol[..., None]
-    # #     gen_dwi[..., non_b0_mask] = unscaled[..., non_b0_mask]
+        b0_avrg_vol = np.mean(b0_vols, axis=-1)
+        non_b0_mask = [True] * gen_dwi.shape[-1]
+        non_b0_mask[:num_b0] = [False]*num_b0
+        unscaled = gen_dwi * b0_avrg_vol[..., None]
+        gen_dwi[..., non_b0_mask] = unscaled[..., non_b0_mask]
         
-    # #     gen_img = nib.Nifti1Image(gen_dwi, dwi_img.affine)
-    # #     print(f'/data/s2ms/results/{out_dir}/{subj_id}/data.nii.gz')
-    # #     nib.save(gen_img, f'/data/s2ms/results/{out_dir}/{subj_id}/data.nii.gz')
+        gen_img = nib.Nifti1Image(gen_dwi, dwi_img.affine)
+        print(f'/data/s2ms/results/{out_dir}/{subj_id}/data.nii.gz')
+        nib.save(gen_img, f'/data/s2ms/results/{out_dir}/{subj_id}/data.nii.gz')
         

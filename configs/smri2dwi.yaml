@@ -6,7 +6,7 @@ latest_save_iter: 1          # How often do you want to save trained models
 log_iter: 201                # How often do you want to log the training stats
 log_dir: '/data/andrey/q-space-conditioned-dwi-synthesis/logs/smri2dwi_noSkull_NoStructNorm'          # Log prefix to save checkpoints
 pretrained:  ''              # Start from specified checkpoint if not ''
-gpu_ids: '2'
+gpu_ids: '0'
 
 # optimization options
 n_epoch: 20                   # maximum number of training epochs
